@@ -199,8 +199,8 @@ static int start_output(mon_state *s, UInt32 buffer_frames, AudioUnit *out_unit)
 
 int main(int argc, char **argv) {
     static const char *pairs[4] = {"main", "tone1", "tone2", "di"};
-    mon_state s = {.gain = 1, .min_target = 288, .frac = 1.0, .step = 1.0};
-    UInt32 buffer_frames = 128;
+    mon_state s = {.gain = 1, .min_target = 224, .frac = 1.0, .step = 1.0};
+    UInt32 buffer_frames = 64;
     int n_xfers = 16;
     bool silent = false;
     for (int i = 1; i < argc; i++) {

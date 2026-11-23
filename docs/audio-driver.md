@@ -2,7 +2,7 @@
 
 This is the knowledge base for debugging the audio side (`audio/`). It records
 what was measured on hardware, what failed and why, and which numbers are
-guesses. It also gives a troubleshooting playbook. Last updated 2026-10-20.
+guesses. It also gives a troubleshooting playbook. Last updated 2026-10-30.
 
 Test setup: POD X3 desktop (`0e41:414a`, firmware 440 reported by the control
 channel, 0x201004 by the `0x67` vendor request), MacBook Pro on Apple Silicon,
@@ -122,12 +122,13 @@ These measurements come from `rawcap` (completion-gap histogram) and from the
     ratio. The P gain is 0.001 × the relative error.
   - The I gain is 5e-7 per callback, clamped to ±1000 ppm. With 2e-6, the
     integrator ran up to +4000 ppm and oscillated.
-- **Ring target.** The default is 288 frames (6 ms). It grows automatically
-  to (callback size + 160) when the output pulls larger buffers.
+- **Ring target.** The default is 224 frames (4.7 ms). It grows automatically
+  to (callback size + 160) when the output pulls larger buffers, so
+  `--target` cannot go below that floor.
   - The headphone jack used 512-frame callbacks, more than the whole
     288-frame ring. That caused about 94 underruns/s, heard as a buzz.
-  - The monitor also listens for default-output changes and requests a
-    128-frame buffer on the new device.
+  - The monitor also listens for default-output changes and requests its
+    buffer size (default 64 frames) on the new device.
 - **Priming.** When the output starts or after an underrun, the monitor
   skips any excess down to exactly the target. Without that, the queued
   backlog becomes latency that the slow loop takes minutes to drain.
@@ -138,9 +139,32 @@ These measurements come from `rawcap` (completion-gap histogram) and from the
   error` (cause unknown: no sleep, and no controller reconnect at that time).
   The monitor now closes, reopens and restarts after 1 s while keeping the
   CoreAudio output alive.
-- **Estimated latency** (POD input to Mac speakers, not measured end to end):
-  about 6 ms ring + about 2.7 ms CoreAudio buffer + device latency + about
-  1–2 ms USB. The user found it acceptable by ear.
+- **Buffer tests on External Headphones** (2026-10-30, 13 s per run, except
+  the 224/64 soak of about 5 min). Margin is `min fill` minus the callback
+  size, taken from the last three stats lines of each run. Each run showed 1
+  underrun on those lines, with no growth. The Mac-side figure is ring +
+  buffer + 130 frames of device latency.
+
+  | Target/buffer | Lowest min fill | Margin | Mac side |
+  |---|---|---|---|
+  | 288/128 (old default) | 256 | 128 | 11.4 ms |
+  | 224/64 (default) | 194 | 130 | 8.7 ms |
+  | 192/32 | 116 | 84 | 7.4 ms |
+
+  The old default reached 5 underruns in one session of a few minutes before
+  these tests. The 224/64 soak stayed at 1 underrun for 5 min, but the same
+  session reached 33 underruns after 61 min (about 0.5/min, in bursts: 0 over
+  the next 90 s). That is similar to the older click rates below, not a fix.
+- **Perceived latency is unexplained.** On 2026-10-30 the user heard 50–100 ms
+  at 224/64 on headphones, while the parts above add up to about 10 ms. No
+  end-to-end measurement exists yet, so neither number is confirmed.
+- **Output device latency** (HAL, frames: device + safety + stream):
+  External Headphones 58 + 48 + 24 = 130 (2.7 ms); MacBook Pro Speakers
+  60 + 48 + 690 = 798 (16.6 ms, the stream latency is presumably the speaker
+  DSP); LG UltraFine 88 + 320 + 0 = 408 (8.5 ms). Prefer headphones for playing.
+- **Estimated latency** (POD input to the Mac's headphone jack, not measured
+  end to end): about 4.7 ms ring + about 1.3 ms CoreAudio buffer + about 2.7 ms
+  device + about 1–2 ms USB, plus whatever the POD itself adds.
 
 ## 5. Tuner tap
 
