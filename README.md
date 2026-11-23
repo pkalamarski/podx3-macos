@@ -11,8 +11,11 @@ POD X3 is not class-compliant: all of its USB interfaces are vendor-specific
 (class 0xFF). Everything here runs in user space. No kernel extension is
 needed and no security settings change.
 
-Tested with a POD X3 (desktop, `0e41:414a`) on macOS 15, Apple Silicon. The
-POD X3 Live (`0e41:414b`) uses the same protocol but is untested.
+Tested with a POD X3 (desktop, `0e41:414a`) on macOS 15, Apple Silicon. A
+user reports that the POD X3 Live (`0e41:414b`) works on macOS 26 with an M4:
+the USB connection, audio monitoring and the analogue outputs. Preset writes
+and editing on the Live have not been tested yet, and the controller
+currently lists only 16 of its 32 banks.
 
 ## Status
 
@@ -26,7 +29,7 @@ POD X3 Live (`0e41:414b`) uses the same protocol but is untested.
 
 ## Requirements
 
-- macOS 15 on Apple Silicon. Other versions are untested.
+- macOS 15 or 26 on Apple Silicon. Other versions are untested.
 - Xcode command line tools (`clang`, `make`).
 - libusb from Homebrew: `brew install libusb`. It is linked statically.
 - Node.js 20 or newer.
@@ -277,6 +280,12 @@ The next `pod` command, or `./podx3`, starts it again.
   power-cycle the POD.
 - **Monitor: "the POD audio interface is busy":** another tool, the helper
   or a second monitor is streaming. Stop it first.
+- **Build fails with `tapi error: malformed file` or `unknown architecture
+  arm64e.x1`:** the selected SDK is newer than your Command Line Tools.
+  Update the Command Line Tools, or point the build at an older installed
+  SDK, for example:
+  `SDKROOT=/Library/Developer/CommandLineTools/SDKs/MacOSX26.5.sdk ./podx3`
+  (`ls /Library/Developer/CommandLineTools/SDKs` lists the installed ones).
 - **Model knobs:** knob names are known for the models the factory presets
   use. On other models, labels may say "Param N".
 
